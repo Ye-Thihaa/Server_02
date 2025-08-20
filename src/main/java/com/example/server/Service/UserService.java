@@ -1,17 +1,20 @@
 package com.example.server.Service;
 
+import com.example.server.Config.exceptions.EntityNotFoundException;
+import com.example.server.GlobalContainer.GlobalUser;
 import com.example.server.Model.User;
 import com.example.server.Repository.UserRepository;
 import com.example.server.dto.UserDTO;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class UserService {
     
     private final UserRepository userRepository;
@@ -42,6 +45,7 @@ public class UserService {
 
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
+            GlobalUser.setCurrentUserId(user.getId());
             return BCrypt.checkpw(userDTO.getPassword(), user.getPassword()); // compare plaintext vs hashed
         }
         return false; // email not found
@@ -56,13 +60,20 @@ public class UserService {
     }
     
     public void resetPassword(String email,String password) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("Email not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("Email not found"));
         user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt()));
         userRepository.save(user);
     }
 
-
-
+    // it will return userId
+    public Long responseId(String email) {
+        if (userRepository.existsByEmail(email)) {
+            return userRepository.findByEmail(email)
+                    .map(User::getId)
+                    .orElse(null);
+        }
+        return null; 
+    }
 
 
 

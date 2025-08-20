@@ -8,10 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 public class MainController implements org.springframework.boot.web.servlet.error.ErrorController {
-//    @RequestMapping(value = "/{path:[^\\.]*}")
-//    public String forward(@PathVariable String path) {
-//        return "forward:/index.html";
-//    }
     @RequestMapping("/error")
     public ResponseEntity<String> handleError() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

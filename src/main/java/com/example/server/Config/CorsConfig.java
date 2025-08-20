@@ -14,7 +14,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Allow all endpoints
-                        .allowedOrigins("http://localhost:5173") // React port
+                        .allowedOrigins("https://orbi-uit.vercel.app") // React port
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

@@ -17,7 +17,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://orbi-uit.vercel.app")
 public class UserRestController {
     
     private final UserService userService;
@@ -38,7 +38,15 @@ public class UserRestController {
         System.out.println(userService.getAllUsers());
         return userService.getAllUsers();
     }
-    
+
+    @GetMapping("/send_id")
+    public Long getUser(@RequestParam("email") String email) {
+        if (email != null && !email.isEmpty()) {
+            return userService.responseId(email);
+        }
+        return 0L;
+    }
+
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@RequestBody UserDTO userDTO) {
         String result = userService.registerUser(userDTO);
@@ -61,11 +69,11 @@ public class UserRestController {
         }
     }
     
-    @GetMapping("/signup")
-    public ResponseEntity<String> signupGet() {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body("GET method not allowed. Please use POST.");
-    }
+//    @GetMapping("/signup")
+//    public ResponseEntity<String> signupGet() {
+//        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+//                .body("GET method not allowed. Please use POST.");
+//    }
 
     @PostMapping("/get-email")
     public ResponseEntity<?> checkUserExists(@RequestBody Map<String, String> request) {

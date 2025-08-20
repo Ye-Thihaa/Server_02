@@ -8,17 +8,17 @@ public class User {
 
     @Id // This annotation marks 'id' as the primary key
     @GeneratedValue(strategy = GenerationType.IDENTITY) // This makes the ID auto-increment
-    private int id;
+    private Long id;
     private String name;
     private String studentId;
     private String email;
     private String password;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
