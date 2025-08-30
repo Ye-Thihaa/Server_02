@@ -7,32 +7,33 @@ import com.example.server.Service.ProfileService;
 import com.example.server.dto.Request.ProfileRequestDto;
 import com.example.server.dto.Response.ProfileResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.apache.catalina.connector.Request;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.PublicKey;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/profile")
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/profiles")
 @CrossOrigin( origins = "https://orbi-uit.vercel.app")
 public class ProfileRestController {
     
-    private ProfileService profileService;
+    private final ProfileService profileService;
     
-    public ProfileRestController(ProfileService profileService) {
-        this.profileService = profileService;
-    }
+//    @GetMapping("/admin/profile-data")
     
     
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse> showProfileData(@PathVariable("userId") Long userId, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> showProfileData(@PathVariable("userId") String userId, HttpServletRequest request) {
         return ResponseUtil.buildResponse(request, profileService.getUserDetails(userId));
     }
     
     @PatchMapping("/user/{userId}/update-info")
-    public ResponseEntity<ApiResponse> updateProfileData(@PathVariable("userId") Long userId, @RequestBody ProfileRequestDto profileRequestDto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> updateProfileData(@PathVariable("userId") String userId, @RequestBody ProfileRequestDto profileRequestDto, HttpServletRequest request) {
         profileRequestDto.setUserId(userId);
-        return ResponseUtil.buildResponse(request, profileService.updateProfileDetails(profileRequestDto));
+        return ResponseUtil.buildResponse(request, profileService.uploadProfileDetails(profileRequestDto));
     }
 }

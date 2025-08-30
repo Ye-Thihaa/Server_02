@@ -1,9 +1,15 @@
 package com.example.server.Model;
 
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "profiles")
 public class Profile {
 
@@ -12,100 +18,40 @@ public class Profile {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "user_id", unique = true, nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
-
+    
     private String location;
 
-    @Column(name = "isadmin")
-    private Boolean isAdmin = false;
+    @Column(columnDefinition = "TIMESTAMPTZ DEFAULT now()")
+    private OffsetDateTime createdAt;
 
-    @Column(name = "isbanned")
-    private Boolean isBanned = false;
+    @Column(columnDefinition = "TIMESTAMPTZ DEFAULT now()")
+    private OffsetDateTime updatedAt;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
-    private ZonedDateTime createdAt = ZonedDateTime.now();
+    @Column(name = "batch", length = 50, nullable = false)
+    private String batch = "none";
 
-    @Column(name = "updated_at", columnDefinition = "TIMESTAMPTZ")
-    private ZonedDateTime updatedAt = ZonedDateTime.now();
+    @Column(name = "year", length = 50, nullable = false)
+    private String year = "none";
 
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "phone", length = 50, nullable = false)
+    private String phone = "none";
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    @Column(name = "cover_url", length = 50, nullable = false)
+    private String coverUrl = "default.png";
 
-    public User getUser() {
-        return user;
-    }
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
-    public void setUser(User user) {
-        this.user = user;
-    }
+    @Column(name = "is_private", nullable = false)
+    private Boolean isPrivate = false;
 
-    public String getBio() {
-        return bio;
-    }
 
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public void setAvatarUrl(String avatarUrl) {
-        this.avatarUrl = avatarUrl;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public Boolean getAdmin() {
-        return isAdmin;
-    }
-
-    public void setAdmin(Boolean admin) {
-        isAdmin = admin;
-    }
-
-    public Boolean getBanned() {
-        return isBanned;
-    }
-
-    public void setBanned(Boolean banned) {
-        isBanned = banned;
-    }
-
-    public ZonedDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(ZonedDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public ZonedDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(ZonedDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-    
 }
-

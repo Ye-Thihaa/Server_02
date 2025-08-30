@@ -1,9 +1,15 @@
 package com.example.server.Model;
 
+import com.example.server.Model.Post;
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "comments")
 public class Comment {
 
@@ -19,62 +25,15 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "comment_text", columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String commentText;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
-    private ZonedDateTime createdAt = ZonedDateTime.now();
+    @Column(columnDefinition = "TIMESTAMPTZ DEFAULT now()")
+    private OffsetDateTime createdAt;
 
     @ManyToOne
     @JoinColumn(name = "comment_on")
     private Comment commentOn;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Post getPost() {
-        return post;
-    }
-
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getCommentText() {
-        return commentText;
-    }
-
-    public void setCommentText(String commentText) {
-        this.commentText = commentText;
-    }
-
-    public ZonedDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(ZonedDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Comment getCommentOn() {
-        return commentOn;
-    }
-
-    public void setCommentOn(Comment commentOn) {
-        this.commentOn = commentOn;
-    }
+    // Getters and setters
 }
-

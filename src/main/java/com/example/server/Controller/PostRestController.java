@@ -8,10 +8,13 @@ import com.example.server.dto.Request.PostRequestDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api/v1/posts")
 @CrossOrigin(origins = "https://orbi-uit.vercel.app")
 public class PostRestController {
     
@@ -25,8 +28,8 @@ public class PostRestController {
 
     // Create post for user (C)
     @PutMapping("/create-post/{id}")
-    public ResponseEntity<ApiResponse> createPost(@PathVariable("id") Long id, @RequestBody PostRequestDto postRequestDto) {
-        postRequestDto.setId(id);
+    public ResponseEntity<ApiResponse> createPost(@PathVariable("id") String userId, @RequestBody PostRequestDto postRequestDto) {
+        postRequestDto.setId(userId);
         ApiResponse apiResponse = postService.createPost(postRequestDto);
         if (apiResponse != null) {
             return new ResponseEntity<>(apiResponse, HttpStatus.OK);
@@ -36,14 +39,20 @@ public class PostRestController {
     }
 
     // Get all posts with reactions/comments (R)
-    @GetMapping("/call-posts")
+    @GetMapping("/admin/call-posts")
     public ResponseEntity<ApiResponse> getAllPosts(HttpServletRequest request) {
         return ResponseUtil.buildResponse(request, postService.getAllPosts());
     }
     
+    // get post by their visibility tags
+    @GetMapping("/{visible}")
+    public ResponseEntity<ApiResponse> postOptional(@PathVariable("visible") String post_type, HttpServletRequest request) {
+        return ResponseUtil.buildResponse(request, postService.fetchPostTag(post_type));
+    }
+    
     // post sharing (S)
     @PostMapping("/user/{sharedUserId}/share/{originalPostId}")
-    public ResponseEntity<ApiResponse> sharePost(@PathVariable("sharedUserId") Long sharedUserId, @PathVariable("originalPostId") Long originalPostId, @RequestBody PostRequestDto postRequestDto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> sharePost(@PathVariable("sharedUserId") String sharedUserId, @PathVariable("originalPostId") Long originalPostId, @RequestBody PostRequestDto postRequestDto, HttpServletRequest request) {
         postRequestDto.setId(sharedUserId);
         postRequestDto.setSharedPostId(originalPostId);
         return ResponseUtil.buildResponse(request, postService.sharedPost(postRequestDto));
@@ -51,7 +60,7 @@ public class PostRestController {
     
     // post updating (U)
     @PatchMapping("/user/{userId}/post/{postId}")
-    public ResponseEntity<ApiResponse> updatePosts(@PathVariable("userId") Long userId, @PathVariable("postId") Long postId, @RequestBody PostRequestDto postRequestDto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> updatePosts(@PathVariable("userId") String userId, @PathVariable("postId") Long postId, @RequestBody PostRequestDto postRequestDto, HttpServletRequest request) {
         postRequestDto.setId(userId);
         postRequestDto.setPostId(postId);
         return ResponseUtil.buildResponse(request, postService.updatedPosts(postRequestDto));
@@ -59,7 +68,7 @@ public class PostRestController {
     
     // post deleting (D)
     @DeleteMapping("/user/{userId}/post/{postId}")
-    public ResponseEntity<ApiResponse> deletePosts(@PathVariable("userId") Long userId, @PathVariable("postId") Long postId, HttpServletRequest request){
+    public ResponseEntity<ApiResponse> deletePosts(@PathVariable("userId") String userId, @PathVariable("postId") Long postId, HttpServletRequest request){
         return ResponseUtil.buildResponse(request, postService.deletePosts(userId, postId));
     }
 }

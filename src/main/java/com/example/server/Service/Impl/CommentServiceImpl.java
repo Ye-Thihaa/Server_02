@@ -11,7 +11,7 @@ import com.example.server.Service.CommentService;
 import com.example.server.Service.NotificationService;
 import com.example.server.dto.Request.CommentRequestDto;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,29 +20,24 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
-    
+
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
-    
-    public CommentServiceImpl(CommentRepository commentRepository, UserRepository userRepository, PostRepository postRepository, NotificationService notificationService) {
-        this.commentRepository = commentRepository;
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-        this.notificationService = notificationService;
-    }
-    
+
     @Override
     public ApiResponse makeComment(CommentRequestDto commentRequestDto){
         ZonedDateTime now = ZonedDateTime.now();
         String notification_Type = "comment";
 
-        User user = userRepository.findById(commentRequestDto.getUserId())
+        User user = userRepository.findById(UUID.fromString(commentRequestDto.getUserId()))
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Post post = postRepository.findById(commentRequestDto.getPostId())
@@ -52,11 +47,10 @@ public class CommentServiceImpl implements CommentService {
         comment.setUser(user);
         comment.setPost(post);
         comment.setCommentText(commentRequestDto.getComment());
-        comment.setCreatedAt(now);
+        comment.setCreatedAt(now.toOffsetDateTime());
         commentRepository.save(comment);
 
         // notify all users except author
-//        List<User> allUsers = userRepository.findAll();
         notificationService.notifyPostOwner(user, post, notification_Type);
 
         Map<String, Object> responseData = new HashMap<>();
@@ -71,32 +65,31 @@ public class CommentServiceImpl implements CommentService {
                 .message("Comment to a post")
                 .build();
     }
-    
+
     @Override
     public ApiResponse reCreateComment(CommentRequestDto commentRequestDto){
         ZonedDateTime now = ZonedDateTime.now();
 
-        User user = userRepository.findById(commentRequestDto.getUserId())
+        User user = userRepository.findById(UUID.fromString(commentRequestDto.getUserId()))
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Post post = postRepository.findById(commentRequestDto.getPostId())
                 .orElseThrow(() -> new EntityNotFoundException("Post not found"));
-        
+
         Comment parentComment  = commentRepository.findById(commentRequestDto.getCommentOn())
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
-        
+
         Comment comment = new Comment();
         comment.setUser(user);
         comment.setPost(post);
         comment.setCommentText(commentRequestDto.getComment());
-        comment.setCreatedAt(now);
+        comment.setCreatedAt(now.toOffsetDateTime());
         comment.setCommentOn(parentComment);
         commentRepository.save(comment);
 
         // notify all users except author
-//        List<User> allUsers = userRepository.findAll();
         notificationService.notifyCommentOwner(user, parentComment, post);
-        
+
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("userId", comment.getUser().getId());
         responseData.put("postId", comment.getPost().getId());
@@ -111,8 +104,9 @@ public class CommentServiceImpl implements CommentService {
                 .message("Comment to a parent comment")
                 .build();
     }
-    
+
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse getAllComments() {
         List<Comment> comments = commentRepository.findAll();
 
@@ -134,14 +128,14 @@ public class CommentServiceImpl implements CommentService {
                 .message("Fetch all comment")
                 .build();
     }
-    
+
     @Override
-    public ApiResponse deleteComment(final Long userId,final Long commentId) {
-        Comment comment = commentRepository.findByUserIdAndId(userId, commentId)
+    public ApiResponse deleteComment(final String userId, final Long commentId) {
+        Comment comment = commentRepository.findByUserIdAndId(UUID.fromString(userId), commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found or does not belong to user"));
-        
+
         commentRepository.delete(comment);
-        
+
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("userId", userId);
         responseData.put("commentId", commentId);

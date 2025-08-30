@@ -9,11 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class NotificationRequestDto {
-    private Long id;
-    private Long notificationFor;
-    private Long notificationFrom;
-    private String type;
-    private Boolean seen;
-    
+public class UserLoginRequestDto {
+    private String email;
+    private String password;
 }

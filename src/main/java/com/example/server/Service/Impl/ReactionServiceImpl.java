@@ -11,6 +11,7 @@ import com.example.server.Service.NotificationService;
 import com.example.server.Service.ReactionService;
 import com.example.server.dto.Request.ReactionRequestDto;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.*;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ReactionServiceImpl implements ReactionService {
 
     private final ReactionRepository reactionRepository;
@@ -26,20 +28,13 @@ public class ReactionServiceImpl implements ReactionService {
     private final PostRepository postRepository;
     private final NotificationService notificationService;
 
-    public ReactionServiceImpl(ReactionRepository reactionRepository, UserRepository userRepository, PostRepository postRepository, NotificationService notificationService) {
-        this.reactionRepository = reactionRepository;
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-        this.notificationService = notificationService;
-    }
-
     // give reaction to post (C)
     @Override
     public ApiResponse setReaction(ReactionRequestDto reactionRequestDto) {
         ZonedDateTime now = ZonedDateTime.now();
         String notificationType = "reaction";
         
-        User user = userRepository.findById(reactionRequestDto.getUserId())
+        User user = userRepository.findById(UUID.fromString(reactionRequestDto.getUserId()))
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Post post = postRepository.findById(reactionRequestDto.getPostId())
@@ -49,7 +44,7 @@ public class ReactionServiceImpl implements ReactionService {
         reaction.setUser(user);
         reaction.setPost(post);
         reaction.setReactionType(reactionRequestDto.getReaction());
-        reaction.setCreatedAt(now);
+        reaction.setCreatedAt(now.toOffsetDateTime());
         reactionRepository.save(reaction);
 
         notificationService.notifyPostOwner(user, post, notificationType);
@@ -70,6 +65,7 @@ public class ReactionServiceImpl implements ReactionService {
 
     // get all reactions (R)
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse getAllReaction() {
         List<Reaction> reactions = reactionRepository.findAll();
         List<Map<String, Object>> responseDataList = new ArrayList<>();
@@ -93,8 +89,8 @@ public class ReactionServiceImpl implements ReactionService {
 
     // delete reaction (D)
     @Override
-    public ApiResponse deleteReaction(final Long postId, final Long userId) {
-        Reaction checkReaction = reactionRepository.findByPostIdAndUserId(postId, userId)
+    public ApiResponse deleteReaction(final Long postId, final String userId) {
+        Reaction checkReaction = reactionRepository.findByPostIdAndUserId(postId, UUID.fromString(userId))
                 .orElse(null);
         if (checkReaction == null) {
             return ApiResponse.builder()

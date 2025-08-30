@@ -6,13 +6,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Data
-@RequiredArgsConstructor
 @Getter
 @Setter
-public class CommentRequestDto {
-    private String comment;
-    private String userId;
-    private Long postId;
-    private Long commentOn;
+@RequiredArgsConstructor
+public class UserRequestDto {
+    private String username;
+    private String email;
+    private String password;
+    private String studentId;
     
 }

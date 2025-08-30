@@ -1,149 +1,115 @@
 package com.example.server.Controller;
 
-import com.example.server.Model.Otp;
-import com.example.server.Model.User;
+import com.example.server.Config.ApiResponse;
 import com.example.server.Repository.OtpCodeRepository;
 import com.example.server.Service.EmailService;
 import com.example.server.Service.OtpService;
 import com.example.server.Service.UserService;
-import com.example.server.dto.UserDTO;
+import com.example.server.dto.Request.UserLoginRequestDto;
+import com.example.server.dto.Request.UserRequestDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api")
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "https://orbi-uit.vercel.app")
 public class UserRestController {
     
     private final UserService userService;
     private final EmailService emailService;
-    private final OtpCodeRepository otpCodeRepository;
     private final OtpService otpService;
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse> getAllUsers() {
+        List<Map<String,Object>> data = userService.getAllUsersWithStudentId();
+        ApiResponse response = ApiResponse.builder()
+                .success(1)
+                .code(200)
+                .data(data)
+                .message("All users fetched successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
     
-    public UserRestController(UserService userService, EmailService emailService, OtpCodeRepository otpCodeRepository, OtpService otpService) {
-        this.userService = userService;
-        this.emailService = emailService;
-        this.otpCodeRepository = otpCodeRepository;
-        this.otpService = otpService;
-    }
-
-//    getting all User from db
-    @GetMapping
-    public List<User> getUsers() {
-        System.out.println(userService.getAllUsers());
-        return userService.getAllUsers();
-    }
-
-    @GetMapping("/send_id")
-    public Long getUser(@RequestParam("email") String email) {
-        if (email != null && !email.isEmpty()) {
-            return userService.responseId(email);
-        }
-        return 0L;
-    }
-
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody UserDTO userDTO) {
-        String result = userService.registerUser(userDTO);
-
-        if (result.equals("Signup successful")) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
-        }
+    public String signUp(@RequestBody UserRequestDto userRequestDto) {
+        return userService.signUp(userRequestDto);
     }
 
+    // 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody UserDTO userDTO) {
-        boolean result = userService.loginUser(userDTO);
+    public ResponseEntity<ApiResponse> login(@RequestBody UserLoginRequestDto userLoginRequestDto) {
+        ApiResponse response = userService.login(userLoginRequestDto);
 
-        if (result) {
-            return ResponseEntity.ok("Login successful");
+        // Use the success field or code to decide HTTP status
+        if (response.getSuccess() == 1) {
+            return ResponseEntity.ok(response); // 200 OK
+        } else if (response.getCode() == 401) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        } else if (response.getCode() == 400) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-    
-//    @GetMapping("/signup")
-//    public ResponseEntity<String> signupGet() {
-//        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-//                .body("GET method not allowed. Please use POST.");
-//    }
 
-    @PostMapping("/get-email")
-    public ResponseEntity<?> checkUserExists(@RequestBody Map<String, String> request) {
+    // Request OTP for forget password
+    @PostMapping("/forget-password")
+    public ResponseEntity<?> forgetPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-
-        Optional<User> user = userService.searchUser(email);
         Map<String, Object> response = new HashMap<>();
 
-        if (user.isEmpty()) {
+        // Check user exist in Supabase
+        if (!userService.checkUserExists(email)) {
             response.put("exists", false);
             response.put("message", "User not found");
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            return ResponseEntity.ok(response);
         }
 
-        // Clean up any old OTPs
+        // Delete old OTPs
         otpService.deleteOtpByEmail(email);
 
-        // Generate 6-digit OTP
+        // Generate OTP
         String otp = String.format("%06d", new Random().nextInt(999999));
+        LocalDateTime expiration = LocalDateTime.now().plusMinutes(10);
 
-        // Expiration time = now + 4 minutes
-        LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(4);
+        // Save OTP
+        otpService.saveOtp(email, otp, expiration);
 
-        // Save to DB
-        Otp otpCode = new Otp();
-        otpCode.setEmail(email);
-        otpCode.setCode(otp);
-        otpCode.setExpirationTime(expirationTime);
-        otpCodeRepository.save(otpCode);
-
-        // Send Email
+        // Send OTP via email
         emailService.sendOtp(email, otp);
 
         response.put("exists", true);
         response.put("message", "OTP sent to your email");
         return ResponseEntity.ok(response);
     }
-    
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String code = request.get("otp");
 
-        Optional<Otp> otpRecord = otpCodeRepository.findByEmailAndCode(email, code);
-        Map<String, Object> response = new HashMap<>();
-
-        if (otpRecord.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP");
-        }
-
-        if (otpRecord.get().getExpirationTime().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.status(HttpStatus.GONE).body("OTP expired");
-        }
-
-        response.put("exists", true);
-        response.put("message", "OTP verified");
-        // OTP is valid
-        return ResponseEntity.ok(response);
-    }
-
+    // Verify OTP & Reset Password
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
-        String email       = request.get("email");
-        String newPassword = request.get("password");
+        String email = request.get("email");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
 
-        try {
-            userService.resetPassword(email, newPassword);
-            return ResponseEntity.ok("Password has been reset successfully.");
-        } catch (UsernameNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        // Verify OTP
+        if (!otpService.verifyOtp(email, otp)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid or expired OTP"));
         }
+
+        // Update password in Supabase
+        if (!userService.updatePassword(email, newPassword)) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to reset password"));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
+    
 }

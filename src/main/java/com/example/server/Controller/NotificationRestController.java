@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/api/v1/notifications")
 @CrossOrigin(origins = "https://orbi-uit.vercel.app")
 public class NotificationRestController {
     
@@ -22,7 +22,7 @@ public class NotificationRestController {
         this.notificationService = notificationService;
     }
     
-    @GetMapping
+    @GetMapping("/admin")
     public List<Notification> getNotifications() {
         return notificationService.getAllNotify();
     }
@@ -31,5 +31,10 @@ public class NotificationRestController {
     public ResponseEntity<ApiResponse> seenNotification(@PathVariable("receiverId") Long receiverId, @RequestBody NotificationRequestDto notificationRequestDto, HttpServletRequest request) {
         notificationRequestDto.setNotificationFor(receiverId);
         return ResponseUtil.buildResponse(request, notificationService.haveBeenSeen(notificationRequestDto));
+    }
+    
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse> getUserNotifications(@PathVariable("userId") String userId, HttpServletRequest request) {
+        return ResponseUtil.buildResponse(request, notificationService.fetchAssoNotification(userId));
     }
 }

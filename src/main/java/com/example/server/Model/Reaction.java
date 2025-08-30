@@ -1,10 +1,17 @@
 package com.example.server.Model;
 
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "reactions", uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "user_id"}))
+@Getter
+@Setter
+@Table(name = "reactions", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"post_id", "user_id"})
+})
 public class Reaction {
 
     @Id
@@ -19,55 +26,16 @@ public class Reaction {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "reaction_type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private ReactionType reactionType;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
-    private ZonedDateTime createdAt = ZonedDateTime.now();
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Post getPost() {
-        return post;
-    }
-
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public ReactionType getReactionType() {
-        return reactionType;
-    }
-
-    public void setReactionType(ReactionType reactionType) {
-        this.reactionType = reactionType;
-    }
-
-    public ZonedDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(ZonedDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    @Column(columnDefinition = "TIMESTAMPTZ DEFAULT now()")
+    private OffsetDateTime createdAt;
 
     public enum ReactionType {
         like, love, haha, wow, sad, angry
     }
-}
 
+    // Getters and setters
+}

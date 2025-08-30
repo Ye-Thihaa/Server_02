@@ -9,6 +9,7 @@ import com.example.server.Repository.UserRepository;
 import com.example.server.Service.ProfileService;
 import com.example.server.dto.Request.ProfileRequestDto;
 import com.example.server.dto.Response.ProfileResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,40 +18,44 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
     
-    private ProfileRepository profileRepository;
-    private UserRepository userRepository;
+    private final ProfileRepository profileRepository;
+    private final UserRepository userRepository;
     
-    public ProfileServiceImpl(ProfileRepository profileRepository, UserRepository userRepository) {
-        this.profileRepository = profileRepository;
-        this.userRepository = userRepository;
-    }
-
     private ProfileResponseDto convertToDto(User user, Profile profile) {
         ProfileResponseDto dto = new ProfileResponseDto();
         dto.setProfileId(profile.getId());
         dto.setUserId(user.getId());
-        dto.setName(user.getName());
+        dto.setName(user.getUsername());
         dto.setStudentId(user.getStudentId());
-        dto.setEmail(user.getEmail());
         dto.setBio(profile.getBio());
         dto.setAvatarUrl(profile.getAvatarUrl());
         dto.setLocation(profile.getLocation());
-        dto.setAdmin(profile.getAdmin());
-        dto.setBanned(profile.getBanned());
+        dto.setBatch(profile.getBatch());
+        dto.setBirthDate(profile.getBirthDate());
+        dto.setCoverUrl(profile.getCoverUrl());
+        dto.setYear(profile.getYear());
+        dto.setPrivate(profile.getIsPrivate());
+        dto.setPhone(profile.getPhone());
+    
         return dto;
     }
+
     
     @Override
-    public ApiResponse getUserDetails(final Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User Not Found, Please signup your account first"));
+    @Transactional(readOnly = true)
+    public ApiResponse getUserDetails(final String userId) {
+        User user = userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new EntityNotFoundException("User Not Found, Please signup your account first"));
 
-        Optional<Profile> porfileOpt = profileRepository.findByUser(user);
-        Profile profile = porfileOpt.orElse(new Profile());
+        Optional<Profile> profileOpt = profileRepository.findByUser(user);
+        Profile profile = profileOpt.orElse(new Profile());
         profile.setUser(user);
 
         ProfileResponseDto responseDto = convertToDto(user, profile);
@@ -67,9 +72,9 @@ public class ProfileServiceImpl implements ProfileService {
     }
     
     @Override
-    public ApiResponse updateProfileDetails(ProfileRequestDto profileRequestDto) {
+    public ApiResponse uploadProfileDetails(ProfileRequestDto profileRequestDto) {
         ZonedDateTime now = ZonedDateTime.now();
-        User user = userRepository.findById(profileRequestDto.getUserId())
+        User user = userRepository.findById(UUID.fromString(profileRequestDto.getUserId()))
                 .orElseThrow(() -> new EntityNotFoundException("User Not Found, Please signup your account first"));
         
         Profile profileData = new Profile();
@@ -77,10 +82,15 @@ public class ProfileServiceImpl implements ProfileService {
         profileData.setBio(profileRequestDto.getBio());
         profileData.setAvatarUrl(profileRequestDto.getAvatarUrl());
         profileData.setLocation(profileRequestDto.getLocation());
-        profileData.setUpdatedAt(now);
+        profileData.setBatch(profileRequestDto.getBatch());
+        profileData.setBirthDate(profileRequestDto.getBirthDate());
+        profileData.setCoverUrl(profileRequestDto.getCoverUrl());
+        profileData.setYear(profileRequestDto.getYear());
+        profileData.setIsPrivate(profileRequestDto.isPrivate());
+        profileData.setUpdatedAt(now.toOffsetDateTime());
         
         profileRepository.save(profileData);
-        
+
         ProfileResponseDto responseDto = convertToDto(user, profileData);
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("profile", responseDto);

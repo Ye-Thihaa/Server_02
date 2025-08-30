@@ -1,10 +1,17 @@
 package com.example.server.Model;
 
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "followee_id"}))
+@Getter
+@Setter
+@Table(name = "follows", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"follower_id", "followee_id"})
+})
 public class Follow {
 
     @Id
@@ -19,39 +26,8 @@ public class Follow {
     @JoinColumn(name = "followee_id", nullable = false)
     private User followee;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
-    private ZonedDateTime createdAt = ZonedDateTime.now();
+    @Column(columnDefinition = "TIMESTAMPTZ DEFAULT now()")
+    private OffsetDateTime createdAt;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public User getFollower() {
-        return follower;
-    }
-
-    public void setFollower(User follower) {
-        this.follower = follower;
-    }
-
-    public User getFollowee() {
-        return followee;
-    }
-
-    public void setFollowee(User followee) {
-        this.followee = followee;
-    }
-
-    public ZonedDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(ZonedDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    // Getters and setters
 }
-

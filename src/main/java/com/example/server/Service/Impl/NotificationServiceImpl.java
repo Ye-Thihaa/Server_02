@@ -9,33 +9,73 @@ import com.example.server.Model.User;
 import com.example.server.Repository.NotificationRepository;
 import com.example.server.Service.NotificationService;
 import com.example.server.dto.Request.NotificationRequestDto;
+import com.example.server.dto.Response.NotificationResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
     
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
     
-    public NotificationServiceImpl(NotificationRepository notificationRepository, SimpMessagingTemplate messagingTemplate) {
-        this.notificationRepository = notificationRepository;
-        this.messagingTemplate = messagingTemplate;
-    }
-    
     // get all notification data
     @Override
+    @Transactional(readOnly = true)
     public List<Notification> getAllNotify() {
         return notificationRepository.findAll();
     }
-    
+
+    // fetch notifications that is associated with each user
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse fetchAssoNotification(final String userId) {
+        List<Object[]> results = notificationRepository.findUserNotificationFor(UUID.fromString(userId));
+
+        List<NotificationResponseDto> notifications = results.stream()
+                .map(obj -> new NotificationResponseDto(  // id, type, fromName, fromAvatar, postId, createdAt, seen
+                        ((Number) obj[0]).longValue(),
+                        (String) obj[1],
+                        (String) obj[6],
+                        (String) obj[5],
+                        obj[2] != null ? ((Number) obj[2]).longValue() : null,
+                        obj[3] != null ? ((java.sql.Timestamp) obj[3])
+                                .toInstant()
+                                .atOffset(java.time.ZoneOffset.UTC) : null,
+                        obj[4] != null && (Boolean) obj[4]
+                ))
+                .toList();
+
+        return ApiResponse.builder()
+                .success(1)
+                .code(200)
+                .data(notifications)
+                .message("Fetched notifications successfully")
+                .build();
+    }
+
+    // notify admin that relate with news & events post 
+    @Override
+    public void notifyAdmin(User userRole, Post post, User user) {
+        if(Objects.equals(userRole.getRole(), "ADMIN")) {
+            Notification notifyAdmin = new Notification();
+            notifyAdmin.setNotificationFor(userRole);
+            notifyAdmin.setNotificationFrom(user);
+            notifyAdmin.setType("news & events");
+            notifyAdmin.setPost(post);
+            notificationRepository.save(notifyAdmin);
+            
+            messagingTemplate.convertAndSend("/topic/admin", notifyAdmin);
+        }
+    }
+
     // notify all users expect owner 
     @Override
     public void notifyAllUsersExceptAuthor(User author, Post post, List<User> allUsers) {
@@ -64,7 +104,7 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setType(notification_Type);
             notification.setPost(post);
             
-            messagingTemplate.convertAndSendToUser(user.getStudentId(), "/queue/notifications", notification);
+            messagingTemplate.convertAndSendToUser(post.getUser().getStudentId(), "/queue/notifications", notification);
         }
     }
     
@@ -78,7 +118,7 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setType("recomment");
             notification.setPost(post);
             
-            messagingTemplate.convertAndSendToUser(user.getStudentId(), "/queue/notifications", notification);
+            messagingTemplate.convertAndSendToUser(parentComment.getUser().getStudentId(), "/queue/notifications", notification);
         }
     }
     
@@ -102,7 +142,7 @@ public class NotificationServiceImpl implements NotificationService {
         responseData.put("type", notification.getType());
         responseData.put("post", notification.getPost() != null ? notification.getPost().getId() : null);
         responseData.put("created_at", notification.getCreatedAt());
-        responseData.put("seen", notification.getSeen());
+        responseData.put("seen", notification.isSeen());
 
         return ApiResponse.builder()
                 .success(1)
@@ -111,6 +151,5 @@ public class NotificationServiceImpl implements NotificationService {
                 .message("Notification seen")
                 .build();
     }
-
-
+    
 }

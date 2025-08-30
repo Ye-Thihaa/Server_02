@@ -13,6 +13,9 @@ public interface NotificationService {
     void notifyAllUsersExceptAuthor(User user, Post post, List<User> allUsers);
     void notifyPostOwner(User user, Post post, final String notification_Type);
     void notifyCommentOwner(User user, Comment parentComment, Post post);
+    void notifyAdmin(User userRole, Post post, User user);
     List<Notification> getAllNotify();
     ApiResponse haveBeenSeen(NotificationRequestDto notificationRequestDto);
+    ApiResponse fetchAssoNotification(final String userId);
+    
 }
