@@ -2,12 +2,8 @@ package com.example.server.Service.Impl;
 
 import com.example.server.Config.ApiResponse;
 import com.example.server.Config.exceptions.EntityNotFoundException;
-import com.example.server.Model.Follow;
 import com.example.server.Model.User;
-import com.example.server.Repository.FollowRepository;
 import com.example.server.Repository.UserRepository;
-import com.example.server.Service.FollowService;
-import com.example.server.dto.Request.FollowRequestDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
